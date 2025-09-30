@@ -1,0 +1,53 @@
+import type { User } from "../types/User"
+import apiClient from "./apiClient"
+
+export interface SignUpResponse {
+    name: string
+    email: string
+    _id: string
+}
+
+export interface LoginResponse {
+    status: string
+    name: string
+    email: string
+    accessToken: string
+    _id: string
+}
+
+export interface LogoutResponse {
+    message: string
+}
+
+export const signUp = async (userData: User): Promise<SignUpResponse> => {
+    console.log("signUp called with userData:", userData)
+    const response = await apiClient.post("/auth/signup", userData)
+    return response.data
+}
+
+export const login = async (loginData: Omit<User, "name">): Promise<LoginResponse> => {
+    console.log("login called with loginData:", loginData)
+    const response = await apiClient.post("/auth/login", loginData)
+    console.log("login response:", response.data)
+
+    if (response.data.accessToken) {
+        localStorage.setItem('accessToken', response.data.accessToken)
+        localStorage.setItem('user', JSON.stringify(response.data.user))
+    }
+    return response.data
+}
+
+export const logout = async (): Promise<LogoutResponse> => {
+
+     localStorage.removeItem('accessToken')
+    localStorage.removeItem('user')
+    
+    const response = await apiClient.post("/auth/logout")
+    return response.data
+}
+
+export const getLoggedInUser = () => {
+  const user = localStorage.getItem("user");
+  return user ? JSON.parse(user) : null;
+};
+
