@@ -7,7 +7,7 @@ import Dashboard from "./pages/Dashboard.tsx";
 import CustomersPage from "./pages/CustomersPage.tsx";
 import ItemsPage from "./pages/ItemsPage.tsx";
 import OrdersPage from "./pages/OrderPage.tsx";
-import AdminDashboard from "./pages/ManagementPage.tsx";
+import ManagementPage from "./pages/ManagementPage.tsx";
 
 
 
@@ -26,7 +26,7 @@ const router = createBrowserRouter([
           { path: "/dashboard/customers", element: <CustomersPage /> },
           { path: "/dashboard/items", element: <ItemsPage /> },
           { path: "/dashboard/orders", element: <OrdersPage /> },
-          { path: "/dashboard/management", element: <AdminDashboard /> }
+          { path: "/dashboard/management", element: <ManagementPage /> }
         ],
       },
     ],

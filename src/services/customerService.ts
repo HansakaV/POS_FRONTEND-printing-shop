@@ -10,7 +10,7 @@ export const deleteCustomer = async (_id: string): Promise<void> => {
   await apiClient.delete(`/customers/${_id}`)
 }
 
-export const addCustomer = async (customerData: Omit<Customer, "id">): Promise<Customer> => {
+export const addCustomer = async (customerData: Omit<Customer, "_id">): Promise<Customer> => {
     console.log("Adding customer with data:", customerData)
   const response = await apiClient.post("/customers", customerData)
   console.log("Response from adding customer:", response.data)
@@ -18,7 +18,17 @@ export const addCustomer = async (customerData: Omit<Customer, "id">): Promise<C
   return response.data
 }
 
-export const updateCustomer = async (_id: string, customerData: Omit<Customer, "id">) => {
+export const updateCustomer = async (_id: string, customerData: Omit<Customer, "_id">) => {
   const response = await apiClient.put(`/customers/${_id}`, customerData)
   return response.data
+}
+
+export const updateCustomerBalance = async (_id: string): Promise<Customer> => {
+  const response = await apiClient.put(`/customers/update-balance/${_id}`);
+  return response.data;
+};
+
+export const updateCustomerBalanceViaPhone = async (phone: string, amount: number): Promise<Customer> => {
+  const response = await apiClient.put(`/customers/update-balance-phone/${phone}`, { amount });
+  return response.data;
 }

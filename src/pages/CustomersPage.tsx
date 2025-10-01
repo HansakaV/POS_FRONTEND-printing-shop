@@ -149,7 +149,7 @@ Thanks for shopping with DP Communication.`;
 
     try {
       const formData = new FormData(e.currentTarget);
-      const customerData: Omit<Customer, 'id'> = {
+      const customerData: Omit<Customer, '_id'> = {
         name: formData.get('name') as string,
         phone: formData.get('phone') as string,
         balance: Number(formData.get('balance') || 0),
@@ -158,8 +158,8 @@ Thanks for shopping with DP Communication.`;
 
       if (selectedCustomer) {
         // Update existing customer
-        const updatedCustomer = await updateCustomer(selectedCustomer.id, customerData);
-        setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? updatedCustomer : c));
+        const updatedCustomer = await updateCustomer(selectedCustomer._id, customerData);
+        setCustomers(prev => prev.map(c => c._id === selectedCustomer._id ? updatedCustomer : c));
         setIsEditModalOpen(false);
         toast.success("Customer updated successfully");
       } else {
@@ -185,7 +185,7 @@ Thanks for shopping with DP Communication.`;
     if (selectedCustomer) {
       try {
         setIsSubmitting(true);
-        await removeCustomer(selectedCustomer.id);
+        await removeCustomer(selectedCustomer._id);
         await fetchAllCustomers();
       } catch (error) {}
       finally {

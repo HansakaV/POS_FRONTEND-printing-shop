@@ -5,10 +5,11 @@ import type { Order } from "../types/order";
 import type { OrderItem } from "../types/orderItem";
 import { getAllCustomers } from "../services/customerService";
 import { getAllItems } from "../services/itemService";
-import { getAllOrders,addOrder,updateOrderStatus } from "../services/orderService";
+import { getAllOrders, addOrder } from "../services/orderService";
+import { updateCustomerBalance } from "../services/customerService";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-
+import Swal from "sweetalert2";
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -25,9 +26,7 @@ const OrdersPage: React.FC = () => {
   const [paidAmount, setPaidAmount] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all');
-  const [isCustomersLoading, setIsCustomersLoading] = useState<boolean>(false);
-  const [isItemsLoading, setIsItemsLoading] = useState<boolean>(false);
-  const [isOrdersLoading, setIsOrdersLoading] = useState<boolean>(false);
+  
 
   useEffect(() => {
     fetchOrders();
@@ -37,7 +36,7 @@ const OrdersPage: React.FC = () => {
 
   const fetchOrders = async () => {
     try {
-      setIsOrdersLoading(true);
+      setIsLoading(true);
       const result = await getAllOrders();
       setOrders(result);
     } catch (error) {
@@ -47,13 +46,12 @@ const OrdersPage: React.FC = () => {
         toast.error("Failed to fetch orders");
       }
     } finally {
-      setIsOrdersLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const fetchCustomers = async() => {
-     try {
-      setIsCustomersLoading(true);
+  const fetchCustomers = async () => {
+    try {
       const result = await getAllCustomers();
       setCustomers(result);
     } catch (error) {
@@ -62,15 +60,17 @@ const OrdersPage: React.FC = () => {
       } else {
         toast.error("Failed to fetch customers");
       }
-    } finally {
-      setIsCustomersLoading(false);
     }
-
   };
+  
+  let customerPhone = customers.find(c => c._id === selectedCustomerId)?.phone || ''
+  if(orderType === 'custom'){
+    customerPhone = customCustomerPhone
+  }
+  console.log("customerPhone", customerPhone);
 
   const fetchItems = async () => {
     try {
-      setIsItemsLoading(true);
       const result = await getAllItems();
       setItems(result);
     } catch (error) {
@@ -79,13 +79,17 @@ const OrdersPage: React.FC = () => {
       } else {
         toast.error("Failed to fetch items");
       }
-    } finally {
-      setIsCustomersLoading(false);
     }
   };
 
   const handleAddItem = () => {
-    setOrderItems([...orderItems, { itemId: '', itemName: '', quantity: 1, price: 0, total: 0 }]);
+    setOrderItems([...orderItems, { 
+      itemId: '', 
+      itemName: '', 
+      quantity: 1, 
+      price: 0, 
+      total: 0 
+    }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -98,7 +102,7 @@ const OrdersPage: React.FC = () => {
     if (field === 'itemId' && typeof value === 'string') {
       newItems[index].itemId = value;
       if (orderType === 'standard') {
-        const selectedItem = items.find(item => item.id === value);
+        const selectedItem = items.find(item => item._id === value);
         if (selectedItem) {
           newItems[index].itemName = selectedItem.itemName;
           newItems[index].price = selectedItem.unitPrice;
@@ -123,50 +127,77 @@ const OrdersPage: React.FC = () => {
   };
 
   const handleSubmitOrder = async (e: React.MouseEvent<HTMLButtonElement>) => {
-  e.preventDefault();
-  setIsSubmitting(true);
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const totalAmount = calculateTotal();
+      const balanceAmount = totalAmount - paidAmount;
 
-  try {
-    const totalAmount = calculateTotal();
-    const balanceAmount = totalAmount - paidAmount;
-
-    const orderData = {
-     // customerId: orderType === "standard" ? selectedCustomerId : undefined,
-      customerName:
-        orderType === "standard"
-          ? customers.find((c) => c.phone === selectedCustomerId)?.name || ""
+      const orderData = {
+        customerName: orderType === "standard" 
+          ? customers.find((c) => c._id === selectedCustomerId)?.name || "" 
           : customCustomerName,
-      customerPhone:
-        orderType === "standard"
-          ? customers.find((c) => c.phone === selectedCustomerId)?.phone || ""
+        customerPhone: orderType === "standard" 
+          ? customers.find((c) => c._id === selectedCustomerId)?.phone || "" 
           : customCustomerPhone,
-      items: orderItems,
-      totalAmount,
-      paidAmount,
-      balanceAmount,
-      status: (balanceAmount > 0 ? "pending" : "completed") as Order["status"],
-      orderType,
-    };
+        items: orderItems,
+        totalAmount,
+        paidAmount,
+        balanceAmount,
+        status: (balanceAmount > 0 ? "pending" : "completed") as Order["status"],
+        orderType,
+      };
 
-    // 🔥 send to backend
-    const savedOrder = await addOrder(orderData);
+      //fetch realtimeUpdated customer Balance using phone
+      const fetchCustomer = customers.find(c => c.phone === customerPhone);
+      const currentBalance = fetchCustomer?.balance || 0;
+      console.log("currentBalance", currentBalance);
+      console.log("paidAmount", paidAmount);
+      console.log("balanceAmount", balanceAmount);
 
-    // update state with latest
-    setOrders([savedOrder, ...orders]);
+      const newBalance = currentBalance +  balanceAmount;
+      console.log("newBalance", newBalance);
+      
 
-    toast.success("✅ Order created successfully!");
-    handleCloseModal();
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      toast.error(error.response?.data?.message || error.message);
-    } else {
-      toast.error("❌ Failed to create order");
+      const savedOrder = await addOrder(orderData);
+      setOrders([savedOrder, ...orders]);
+      Swal.fire({
+        title: "Success!",
+        text: "Order created successfully!",
+        icon: "success",
+        draggable: true
+          });
+      handleCloseModal();
+
+      if (orderType === "standard") {
+      // Update balance on backend
+      await updateCustomerBalance(selectedCustomerId);
+      fetchCustomers(); // refresh customer data in UI
     }
-  } finally {
-    setIsSubmitting(false);
-  }
-};
 
+     const message = `Dear Sir/Madam,
+     Your Order has been placed successfully.Total Amount is LKR ${totalAmount.toFixed(2) || 0}.
+      Paid Amount is LKR ${paidAmount.toFixed(2) || 0}.
+       Thanks for shopping with DP Communication.`;
+
+     await axios.post("http://localhost:3000/api/sms/send-sms", {
+      phone: customerPhone,
+      message,
+    });
+
+
+
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data?.message || error.message);
+      } else {
+        toast.error("❌ Failed to create order");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -178,27 +209,11 @@ const OrdersPage: React.FC = () => {
     setPaidAmount(0);
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: Order["status"]) => {
-  try {
-    const updatedOrder = await updateOrderStatus(orderId, newStatus);
 
-    setOrders(orders.map((order) =>
-      order.id === orderId ? updatedOrder : order
-    ));
-
-    toast.success("✅ Order status updated!");
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      toast.error(error.response?.data?.message || error.message);
-    } else {
-      toast.error("❌ Failed to update status");
-    }
-  }
-};
-
+  
 
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          order.customerPhone.includes(searchTerm);
     const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
     return matchesSearch && matchesStatus;
@@ -211,6 +226,8 @@ const OrdersPage: React.FC = () => {
     totalRevenue: orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + o.totalAmount, 0),
     pendingPayments: orders.filter(o => o.status === 'pending').reduce((sum, o) => sum + o.balanceAmount, 0)
   };
+
+  
 
   if (isLoading) {
     return (
@@ -226,12 +243,13 @@ const OrdersPage: React.FC = () => {
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Order Management</h1>
             <p className="text-gray-600 mt-1">Create and manage customer orders</p>
           </div>
-          <button
+          <button 
             onClick={() => setIsModalOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition duration-200 shadow-lg"
           >
@@ -239,6 +257,7 @@ const OrdersPage: React.FC = () => {
           </button>
         </div>
 
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-sm font-semibold text-gray-600">Total Orders</h3>
@@ -262,16 +281,17 @@ const OrdersPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Search and Filter */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">
           <div className="flex flex-col md:flex-row gap-4">
-            <input
-              type="text"
+            <input 
+              type="text" 
               placeholder="Search by customer name or phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-            <select
+            <select 
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -279,14 +299,15 @@ const OrdersPage: React.FC = () => {
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
               <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
+              {/* <option value="cancelled">Paid Amounts</option> */}
             </select>
           </div>
         </div>
 
+        {/* Orders List */}
         <div className="space-y-4">
           {filteredOrders.map((order) => (
-            <div key={order.id} className="bg-white p-6 rounded-lg shadow hover:shadow-md transition">
+            <div key={order._id} className="bg-white p-6 rounded-lg shadow hover:shadow-md transition">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
@@ -311,7 +332,9 @@ const OrdersPage: React.FC = () => {
                   <p className="text-2xl font-bold text-gray-800">LKR {order.totalAmount.toFixed(2)}</p>
                   <p className="text-sm text-gray-600">Paid: LKR {order.paidAmount.toFixed(2)}</p>
                   {order.balanceAmount > 0 && (
-                    <p className="text-sm text-red-600 font-semibold">Balance: LKR {order.balanceAmount.toFixed(2)}</p>
+                    <p className="text-sm text-red-600 font-semibold">
+                      Balance: LKR {order.balanceAmount.toFixed(2)}
+                    </p>
                   )}
                 </div>
               </div>
@@ -329,18 +352,6 @@ const OrdersPage: React.FC = () => {
               </div>
 
               <div className="flex gap-2">
-                <select
-                  value={order.status}
-                  onChange={(e) => handleStatusChange(order.id, e.target.value as Order['status'])}
-                  className="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-                <button className="px-4 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-                  View Details
-                </button>
                 <button className="px-4 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700">
                   Print Invoice
                 </button>
@@ -355,36 +366,43 @@ const OrdersPage: React.FC = () => {
           </div>
         )}
 
+        {/* Create Order Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-gray-800">Create New Order</h2>
-                <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+                <button 
+                  onClick={handleCloseModal}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
               </div>
 
               <div className="p-6">
+                {/* Order Type */}
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Order Type</label>
                   <div className="flex gap-4">
-                    <button
+                    <button 
                       type="button"
                       onClick={() => setOrderType('standard')}
                       className={`flex-1 py-3 px-4 rounded-lg border-2 transition ${
-                        orderType === 'standard'
-                          ? 'border-blue-600 bg-blue-50 text-blue-700'
+                        orderType === 'standard' 
+                          ? 'border-blue-600 bg-blue-50 text-blue-700' 
                           : 'border-gray-300 hover:border-gray-400'
                       }`}
                     >
                       <div className="font-semibold">Standard Order</div>
                       <div className="text-xs mt-1">Select from existing customers and items</div>
                     </button>
-                    <button
+                    <button 
                       type="button"
                       onClick={() => setOrderType('custom')}
                       className={`flex-1 py-3 px-4 rounded-lg border-2 transition ${
-                        orderType === 'custom'
-                          ? 'border-blue-600 bg-blue-50 text-blue-700'
+                        orderType === 'custom' 
+                          ? 'border-blue-600 bg-blue-50 text-blue-700' 
                           : 'border-gray-300 hover:border-gray-400'
                       }`}
                     >
@@ -394,32 +412,33 @@ const OrdersPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Customer Details */}
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Customer Details</label>
                   {orderType === 'standard' ? (
-                    <select
+                    <select 
                       value={selectedCustomerId}
                       onChange={(e) => setSelectedCustomerId(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Select a customer</option>
                       {customers.map(customer => (
-                        <option key={customer.name} value={customer.name}>
-                          {customer.name} 
+                        <option key={customer._id} value={customer._id}>
+                          {customer.name} - {customer.phone}
                         </option>
                       ))}
                     </select>
                   ) : (
                     <div className="grid grid-cols-2 gap-4">
-                      <input
-                        type="text"
+                      <input 
+                        type="text" 
                         placeholder="Customer Name"
                         value={customCustomerName}
                         onChange={(e) => setCustomCustomerName(e.target.value)}
                         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       />
-                      <input
-                        type="tel"
+                      <input 
+                        type="tel" 
                         placeholder="Customer Phone"
                         value={customCustomerPhone}
                         onChange={(e) => setCustomCustomerPhone(e.target.value)}
@@ -429,53 +448,53 @@ const OrdersPage: React.FC = () => {
                   )}
                 </div>
 
+                {/* Order Items */}
                 <div className="mb-6">
                   <div className="flex justify-between items-center mb-2">
                     <label className="block text-sm font-semibold text-gray-700">Order Items</label>
-                    <button
-                      type="button"
+                    <button 
+                      type="button" 
                       onClick={handleAddItem}
                       className="text-blue-600 hover:text-blue-700 text-sm font-semibold"
                     >
                       + Add Item
                     </button>
                   </div>
-
                   <div className="space-y-3">
                     {orderItems.map((item, index) => (
                       <div key={index} className="grid grid-cols-12 gap-2 bg-gray-50 p-3 rounded-lg">
                         {orderType === 'standard' ? (
-                          <select
+                          <select 
                             value={item.itemId || ''}
                             onChange={(e) => handleItemChange(index, 'itemId', e.target.value)}
                             className="col-span-5 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                           >
                             <option value="">Select item</option>
                             {items.map(i => (
-                              <option key={i.id} value={i.id}>
+                              <option key={i._id} value={i._id}>
                                 {i.itemName} - LKR {i.unitPrice}
                               </option>
                             ))}
                           </select>
                         ) : (
-                          <input
-                            type="text"
+                          <input 
+                            type="text" 
                             placeholder="Item name"
                             value={item.itemName}
                             onChange={(e) => handleItemChange(index, 'itemName', e.target.value)}
                             className="col-span-5 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                           />
                         )}
-                        <input
-                          type="number"
+                        <input 
+                          type="number" 
                           placeholder="Qty"
                           value={item.quantity || ''}
                           onChange={(e) => handleItemChange(index, 'quantity', Number(e.target.value))}
                           min="1"
                           className="col-span-2 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                         />
-                        <input
-                          type="number"
+                        <input 
+                          type="number" 
                           placeholder="Price"
                           value={item.price || ''}
                           onChange={(e) => handleItemChange(index, 'price', Number(e.target.value))}
@@ -485,7 +504,7 @@ const OrdersPage: React.FC = () => {
                           className="col-span-3 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                         />
                         <div className="col-span-1 flex items-center justify-center">
-                          <button
+                          <button 
                             type="button"
                             onClick={() => handleRemoveItem(index)}
                             className="text-red-600 hover:text-red-700 font-bold text-xl"
@@ -499,12 +518,12 @@ const OrdersPage: React.FC = () => {
                       </div>
                     ))}
                   </div>
-
                   {orderItems.length === 0 && (
                     <p className="text-center text-gray-500 py-8">Click Add Item to start adding items</p>
                   )}
                 </div>
 
+                {/* Order Summary */}
                 {orderItems.length > 0 && (
                   <div className="bg-blue-50 p-4 rounded-lg mb-6">
                     <div className="space-y-2">
@@ -514,8 +533,8 @@ const OrdersPage: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-4">
                         <label className="font-semibold">Paid Amount:</label>
-                        <input
-                          type="number"
+                        <input 
+                          type="number" 
                           value={paidAmount || ''}
                           onChange={(e) => setPaidAmount(Number(e.target.value))}
                           min="0"
@@ -526,7 +545,9 @@ const OrdersPage: React.FC = () => {
                       </div>
                       <div className="flex justify-between text-lg">
                         <span className="font-semibold">Balance:</span>
-                        <span className={`font-bold ${calculateTotal() - paidAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        <span className={`font-bold ${
+                          calculateTotal() - paidAmount > 0 ? 'text-red-600' : 'text-green-600'
+                        }`}>
                           LKR {(calculateTotal() - paidAmount).toFixed(2)}
                         </span>
                       </div>
@@ -534,8 +555,9 @@ const OrdersPage: React.FC = () => {
                   </div>
                 )}
 
+                {/* Action Buttons */}
                 <div className="flex justify-end gap-3">
-                  <button
+                  <button 
                     type="button"
                     onClick={handleCloseModal}
                     disabled={isSubmitting}
@@ -543,7 +565,7 @@ const OrdersPage: React.FC = () => {
                   >
                     Cancel
                   </button>
-                  <button
+                  <button 
                     type="button"
                     onClick={handleSubmitOrder}
                     disabled={isSubmitting || orderItems.length === 0}

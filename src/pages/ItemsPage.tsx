@@ -110,7 +110,7 @@ const ItemsPage: React.FC = () => {
 
     try {
       const formData = new FormData(e.currentTarget);
-      const itemData: Omit<Item, "id"> = {
+      const itemData: Omit<Item, "_id"> = {
         itemName: formData.get("itemName") as string,
         qty: Number(formData.get("qty") || 0),
         unitPrice: Number(formData.get("unitPrice") || 0),
