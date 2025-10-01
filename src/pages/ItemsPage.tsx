@@ -40,9 +40,9 @@ const ItemsPage: React.FC = () => {
   }, []);
 
   // Delete item
-  const removeItem = async (itemName: string) => {
+  const removeItem = async (id: string) => {
     try {
-      await deleteItem(itemName);
+      await deleteItem(id);
       toast.success("Item deleted successfully");
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -118,10 +118,10 @@ const ItemsPage: React.FC = () => {
 
       if (selectedItem) {
         // Update existing item
-        const updatedItem = await updateItem(selectedItem.itemName, itemData);
+        const updatedItem = await updateItem(selectedItem._id, itemData);
         setItems((prev) =>
           prev.map((i) =>
-            i.itemName === selectedItem.itemName ? updatedItem : i
+            i._id === selectedItem._id ? updatedItem : i
           )
         );
         setIsEditModalOpen(false);
@@ -149,7 +149,7 @@ const ItemsPage: React.FC = () => {
     if (selectedItem) {
       try {
         setIsSubmitting(true);
-        await removeItem(selectedItem.itemName);
+        await removeItem(selectedItem._id);
         await fetchAllItems();
       } catch (error) {
       } finally {

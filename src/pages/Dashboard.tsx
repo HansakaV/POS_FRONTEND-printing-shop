@@ -56,51 +56,66 @@ const Dashboard: React.FC = () => {
     fetchAllData();
   }, []);
 
+// Filter orders for today
+const todayOrders = orders.filter(order => {
+  if (!order.createdAt) return false;
+  const orderDate = new Date(order.createdAt);
+  const today = new Date();
+  return (
+    orderDate.getFullYear() === today.getFullYear() &&
+    orderDate.getMonth() === today.getMonth() &&
+    orderDate.getDate() === today.getDate()
+  );
+});
+
+// Stats array for today
+const stats = [
+  { 
+    label: 'Today Items Sold', 
+    value: todayOrders.reduce((sum, order) => {
+      return sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0);
+    }, 0),
+    icon: Package,
+    color: 'from-blue-500 to-blue-600',
+    bgColor: 'bg-blue-50',
+    iconColor: 'text-blue-600',
+    change: '+12%',
+    trend: 'up'
+  },
+  { 
+    label: 'Today Customers', 
+    value: todayOrders.length, // number of orders today
+    icon: Users,
+    color: 'from-purple-500 to-purple-600',
+    bgColor: 'bg-purple-50',
+    iconColor: 'text-purple-600',
+    change: '+8%',
+    trend: 'up'
+  },
+  { 
+    label: 'Today Orders', 
+    value: todayOrders.length, // same as above
+    icon: ShoppingCart,
+    color: 'from-green-500 to-green-600',
+    bgColor: 'bg-green-50',
+    iconColor: 'text-green-600',
+    change: '+23%',
+    trend: 'up'
+  },
+  { 
+    label: 'Today Income', 
+    value: todayOrders.reduce((total, order) => total + order.totalAmount, 0),
+    icon: TrendingUp,
+    color: 'from-orange-500 to-orange-600',
+    bgColor: 'bg-orange-50',
+    iconColor: 'text-orange-600',
+    change: '+15%',
+    trend: 'up'
+  }
+];
+
   
 
-  // Calculate statistics
-  const stats = [
-    { 
-      label: 'Total Items', 
-      value: items.length, 
-      icon: Package,
-      color: 'from-blue-500 to-blue-600',
-      bgColor: 'bg-blue-50',
-      iconColor: 'text-blue-600',
-      change: '+12%',
-      trend: 'up'
-    },
-    { 
-      label: 'Active Customers', 
-      value: customers.length, 
-      icon: Users,
-      color: 'from-purple-500 to-purple-600',
-      bgColor: 'bg-purple-50',
-      iconColor: 'text-purple-600',
-      change: '+8%',
-      trend: 'up'
-    },
-    { 
-      label: 'Total Orders', 
-      value: orders.length, 
-      icon: ShoppingCart,
-      color: 'from-green-500 to-green-600',
-      bgColor: 'bg-green-50',
-      iconColor: 'text-green-600',
-      change: '+23%',
-      trend: 'up'
-    },
-    { 
-      label: 'Revenue', 
-      value: `$${(orders.length * 45.8).toFixed(0)}`, 
-      icon: TrendingUp,
-      color: 'from-orange-500 to-orange-600',
-      bgColor: 'bg-orange-50',
-      iconColor: 'text-orange-600',
-      change: '+15%',
-      trend: 'up'
-    },
-  ];
 
   const quickActions = [
     {
@@ -190,7 +205,9 @@ const Dashboard: React.FC = () => {
                 
                 <div>
                   <p className="text-gray-600 text-sm font-medium mb-1">{stat.label}</p>
-                  <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {stat.label === 'Today Income' ? `LKR ${Number(stat.value).toFixed(0)}` : stat.value}
+                  </p>
                 </div>
               </div>
             </div>

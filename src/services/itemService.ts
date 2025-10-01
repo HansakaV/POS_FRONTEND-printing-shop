@@ -23,3 +23,5 @@ export const updateItem = async (_id: string, itemData: Omit<Item, "_id">) => {
   const response = await apiClient.put(`/items/${_id}`, itemData)
   return response.data
 }
+
+

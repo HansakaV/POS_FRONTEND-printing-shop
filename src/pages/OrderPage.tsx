@@ -4,12 +4,13 @@ import type { Item } from "../types/items";
 import type { Order } from "../types/order";
 import type { OrderItem } from "../types/orderItem";
 import { getAllCustomers } from "../services/customerService";
-import { getAllItems } from "../services/itemService";
+import { getAllItems, updateItem } from "../services/itemService";
 import { getAllOrders, addOrder } from "../services/orderService";
 import { updateCustomerBalance } from "../services/customerService";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import Swal from "sweetalert2";
+import InvoiceModal from "../components/invoiceModal";
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -26,6 +27,8 @@ const OrdersPage: React.FC = () => {
   const [paidAmount, setPaidAmount] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
   
 
   useEffect(() => {
@@ -91,6 +94,7 @@ const OrdersPage: React.FC = () => {
       total: 0 
     }]);
   };
+  
 
   const handleRemoveItem = (index: number) => {
     setOrderItems(orderItems.filter((_, i) => i !== index));
@@ -107,6 +111,7 @@ const OrdersPage: React.FC = () => {
           newItems[index].itemName = selectedItem.itemName;
           newItems[index].price = selectedItem.unitPrice;
           newItems[index].total = newItems[index].quantity * selectedItem.unitPrice;
+          
         }
       }
     } else if (field === 'itemName' && typeof value === 'string') {
@@ -174,7 +179,26 @@ const OrdersPage: React.FC = () => {
       // Update balance on backend
       await updateCustomerBalance(selectedCustomerId);
       fetchCustomers(); // refresh customer data in UI
+      
+
+      for (const item of orderItems) {
+    const selectedItem = items.find(i => i._id === item.itemId);
+    if (selectedItem) {
+      const updatedQty = selectedItem.qty - item.quantity; // deduct
+      if (updatedQty < 0) {
+        toast.error(`Not enough stock for ${selectedItem.itemName}`);
+        continue; // skip this item
+      }
+      await updateItem(selectedItem._id, {
+        ...selectedItem,
+        qty: updatedQty
+      });
     }
+  }
+
+  // Refresh items in UI
+  fetchItems();
+}
 
      const message = `Dear Sir/Madam,
      Your Order has been placed successfully.Total Amount is LKR ${totalAmount.toFixed(2) || 0}.
@@ -352,7 +376,10 @@ const OrdersPage: React.FC = () => {
               </div>
 
               <div className="flex gap-2">
-                <button className="px-4 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700">
+                <button 
+                  onClick={() => setSelectedOrder(order)}
+                  className="px-4 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition"
+                >
                   Print Invoice
                 </button>
               </div>
@@ -365,6 +392,14 @@ const OrdersPage: React.FC = () => {
             <p className="text-gray-500 text-lg">No orders found</p>
           </div>
         )}
+
+        {selectedOrder && (
+        <InvoiceModal 
+        order={selectedOrder} 
+       onClose={() => setSelectedOrder(null)} 
+        />
+        )}
+
 
         {/* Create Order Modal */}
         {isModalOpen && (
