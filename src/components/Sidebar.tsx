@@ -33,12 +33,12 @@ const Sidebar: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-/*    useEffect(() => {
+    useEffect(() => {
     if (user?.email) {
       sendVerification(user.email);
     }
   }, [user]); 
- */
+ 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: Home, color: 'from-blue-400 to-blue-600' },
     { name: 'Customers', path: '/dashboard/customers', icon: Users, color: 'from-purple-400 to-purple-600' },
@@ -74,7 +74,7 @@ const Sidebar: React.FC = () => {
     This is a verification message.`;
 
     const res = await axios.post("http://localhost:3000/api/sms/send-sms", {
-      phone: "0710356244",
+      phone: "0713856863",
       message,
     });
     if(res.status === 200){
