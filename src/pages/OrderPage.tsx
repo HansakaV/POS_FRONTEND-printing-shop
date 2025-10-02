@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import type { Customer } from "../types/customer";
 import type { Item } from "../types/items";
 import type { Order } from "../types/order";
@@ -11,6 +11,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import Swal from "sweetalert2";
 import InvoiceModal from "../components/invoiceModal";
+import { getLoggedInUser } from "../services/authService";
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -28,19 +29,25 @@ const OrdersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-
-  
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    fetchOrders();
-    fetchCustomers();
-    fetchItems();
+    const loggedUser = getLoggedInUser();
+    setUser(loggedUser);
   }, []);
 
-  const fetchOrders = async () => {
+  useEffect(() => {
+  if (user?.branch) {
+    fetchOrders(user.branch);
+    fetchCustomers(user.branch);
+    fetchItems(user.branch);
+  }
+}, [user]);
+
+  const fetchOrders = async (branch: string) => {
     try {
       setIsLoading(true);
-      const result = await getAllOrders();
+      const result = await getAllOrders(branch);
       setOrders(result);
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -53,9 +60,9 @@ const OrdersPage: React.FC = () => {
     }
   };
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = async (branch: string) => {
     try {
-      const result = await getAllCustomers();
+      const result = await getAllCustomers(branch);
       setCustomers(result);
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -72,9 +79,9 @@ const OrdersPage: React.FC = () => {
   }
   console.log("customerPhone", customerPhone);
 
-  const fetchItems = async () => {
+  const fetchItems = async (branch: string) => {
     try {
-      const result = await getAllItems();
+      const result = await getAllItems(branch);
       setItems(result);
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -152,6 +159,7 @@ const OrdersPage: React.FC = () => {
         balanceAmount,
         status: (balanceAmount > 0 ? "pending" : "completed") as Order["status"],
         orderType,
+        branch: user?.branch || '',
       };
 
       //fetch realtimeUpdated customer Balance using phone
@@ -178,7 +186,7 @@ const OrdersPage: React.FC = () => {
       if (orderType === "standard") {
       // Update balance on backend
       await updateCustomerBalance(selectedCustomerId);
-      fetchCustomers(); // refresh customer data in UI
+      fetchCustomers(user.branch); // refresh customer data in UI
       
 
       for (const item of orderItems) {
@@ -197,7 +205,7 @@ const OrdersPage: React.FC = () => {
   }
 
   // Refresh items in UI
-  fetchItems();
+  fetchItems(user.branch);
 }
 
      const message = `Dear Sir/Madam,

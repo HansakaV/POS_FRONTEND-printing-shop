@@ -7,6 +7,7 @@ import { Modal } from "../components/Modal.tsx";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { addCustomer, deleteCustomer, getAllCustomers, updateCustomer } from "../services/customerService.ts";
+import { getLoggedInUser } from "../services/authService.ts";
 
 const CustomersPage: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -16,28 +17,36 @@ const CustomersPage: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [user, setUser] = useState<any>(null);
   
+  useEffect(() => {
+    const loggedUser = getLoggedInUser();
+    setUser(loggedUser);
+  }, []);
 
   // Fetch all customers
-  const fetchAllCustomers = async () => {
-    try {
-      setIsCustomersLoading(true);
-      const result = await getAllCustomers();
-      setCustomers(result);
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        toast.error(error.response?.data?.message || error.message);
-      } else {
-        toast.error("Failed to fetch customers");
-      }
-    } finally {
-      setIsCustomersLoading(false);
+  const fetchAllCustomers = async (branch: string) => {
+  try {
+    setIsCustomersLoading(true);
+    const result = await getAllCustomers(branch);
+    setCustomers(result);
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      toast.error(error.response?.data?.message || error.message);
+    } else {
+      toast.error("Failed to fetch customers");
     }
-  };
+  } finally {
+    setIsCustomersLoading(false);
+  }
+};
 
-  useEffect(() => {
-    fetchAllCustomers();
-  }, []);
+useEffect(() => {
+  if (user?.branch) {
+    fetchAllCustomers(user.branch);
+  }
+}, [user]);
+
 
   // Delete customer
   const removeCustomer = async (id: string) => {
@@ -153,6 +162,7 @@ Thanks for shopping with DP Communication.`;
         name: formData.get('name') as string,
         phone: formData.get('phone') as string,
         balance: Number(formData.get('balance') || 0),
+        branch: user?.branch || '',
 
       };
 
@@ -186,7 +196,7 @@ Thanks for shopping with DP Communication.`;
       try {
         setIsSubmitting(true);
         await removeCustomer(selectedCustomer._id);
-        await fetchAllCustomers();
+        await fetchAllCustomers(user.branch);
       } catch (error) {}
       finally {
         setIsDeleteModalOpen(false);

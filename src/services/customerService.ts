@@ -1,8 +1,8 @@
 import type { Customer} from "../types/customer"
 import apiClient from "./apiClient"
 
-export const getAllCustomers = async (): Promise<Customer[]> => {
-  const response = await apiClient.get("/customers")
+export const getAllCustomers = async (branch: string): Promise<Customer[]> => {
+  const response = await apiClient.get(`/customers/${branch}`);
   return response.data
 }
 

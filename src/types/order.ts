@@ -11,5 +11,6 @@ export interface Order  {
   balanceAmount: number;
   status: 'pending' | 'completed' | 'cancelled';
   orderType: 'standard' | 'custom';
+  branch: string;
   createdAt?: string;
 }

@@ -3,5 +3,6 @@ export interface Item {
   itemName: string;
   qty: number;
   unitPrice: number;
+  branch: string;
 
 }

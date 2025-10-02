@@ -7,6 +7,7 @@ import { Modal } from "../components/Modal.tsx";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { addItem, deleteItem, getAllItems, updateItem } from "../services/itemService.ts";
+import { getLoggedInUser } from "../services/authService.ts";
 
 const ItemsPage: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
@@ -16,12 +17,18 @@ const ItemsPage: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const loggedUser = getLoggedInUser();
+    setUser(loggedUser);
+  }, []);
 
   // Fetch all items
-  const fetchAllItems = async () => {
+  const fetchAllItems = async (branch: string) => {
     try {
       setIsItemsLoading(true);
-      const result = await getAllItems();
+      const result = await getAllItems(branch);
       console.log("Fetched items:", result);
       setItems(result);
     } catch (error) {
@@ -36,8 +43,10 @@ const ItemsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchAllItems();
-  }, []);
+    if (user?.branch) {
+      fetchAllItems(user.branch);
+    }
+  }, [user]);
 
   // Delete item
   const removeItem = async (id: string) => {
@@ -114,6 +123,7 @@ const ItemsPage: React.FC = () => {
         itemName: formData.get("itemName") as string,
         qty: Number(formData.get("qty") || 0),
         unitPrice: Number(formData.get("unitPrice") || 0),
+        branch: user?.branch || '',
       };
 
       if (selectedItem) {
@@ -150,7 +160,7 @@ const ItemsPage: React.FC = () => {
       try {
         setIsSubmitting(true);
         await removeItem(selectedItem._id);
-        await fetchAllItems();
+        await fetchAllItems(user.branch);
       } catch (error) {
       } finally {
         setIsDeleteModalOpen(false);

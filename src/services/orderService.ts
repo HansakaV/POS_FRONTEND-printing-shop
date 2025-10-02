@@ -1,8 +1,8 @@
 import type { Order } from '../types/order';
 import apiClient from "./apiClient"
 
-export const getAllOrders = async (): Promise<Order[]> => {
-  const response = await apiClient.get("/orders")
+export const getAllOrders = async (branch: string): Promise<Order[]> => {
+  const response = await apiClient.get(`/orders/${branch}`)
   return response.data
 }
 

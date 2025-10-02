@@ -1,9 +1,8 @@
 import type { Item } from '../types/items';
 import apiClient from "./apiClient"
 
-export const getAllItems = async (): Promise<Item[]> => {
-  const response = await apiClient.get("/items")
-  console.log("items response", response.data);
+export const getAllItems = async (branch: string): Promise<Item[]> => {
+  const response = await apiClient.get(`/items/${branch}`);
   return response.data
     
 }
