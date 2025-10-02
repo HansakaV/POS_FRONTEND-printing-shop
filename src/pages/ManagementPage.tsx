@@ -8,6 +8,11 @@ import { toast } from "react-hot-toast";
 import { getAllCustomers } from "../services/customerService";
 import { getAllOrders } from "../services/orderService";
 import InvoiceModal from "../components/invoiceModal";
+import { updateOrder } from "../services/orderService";
+import Swal from "sweetalert2";
+import { updateCustomerBalance } from "../services/customerService";
+import type { OrderItem } from "../types/orderItem";
+
 
 const ManagementPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -95,27 +100,66 @@ console.log(isLoading)
     return acc;
   }, {} as Record<string, any>);
 
-
-  // Handle payment
-  const handlePayment = async () => {
-    if (!selectedOrder) return;
+  let selectedCustomerId = selectedOrder ? customers.find(c => c.phone === selectedOrder.customerPhone)?._id || '' : ''
     
-    const newBalance = selectedOrder.balanceAmount - paymentAmount;
-    const newPaidAmount = selectedOrder.paidAmount + paymentAmount;
-    const newStatus: 'pending' | 'completed' | 'cancelled' = newBalance <= 0 ? 'completed' : 'pending';
 
-    // Update order (replace with actual API call)
-    const updatedOrders = orders.map(o => 
-      o._id === selectedOrder._id 
-        ? { ...o, paidAmount: newPaidAmount, balanceAmount: Math.max(0, newBalance), status: newStatus }
-        : o
+const handlePayment = async () => {
+  if (!selectedOrder) return;
+
+  const newBalance = selectedOrder.balanceAmount - paymentAmount;
+  const newPaidAmount = selectedOrder.paidAmount + paymentAmount;
+  const newStatus: 'pending' | 'completed' | 'cancelled' =
+    newBalance <= 0 ? 'completed' : 'pending';
+
+  try {
+    // 🔹 Update the selected order on backend
+    const updatedOrder = {
+      ...selectedOrder,
+      paidAmount: newPaidAmount,
+      balanceAmount: Math.max(0, newBalance),
+      status: newStatus,
+    };
+    console.log("Updating order with data:", updatedOrder);
+
+    await updateOrder(selectedOrder._id, updatedOrder);
+
+    // 🔹 Update local state
+    const updatedOrders = orders.map((o) =>
+      o._id === selectedOrder._id ? updatedOrder : o
     );
+
     setOrders(updatedOrders);
-    
+    try{
+    const message = `Dear Sir/Madam,
+     We have Received Your Payment  LKR ${selectedOrder.paidAmount.toFixed(2) || 0}.Your Due balance is LKR ${selectedOrder.balanceAmount.toFixed(2) || 0}.
+     Thanks for shopping with DP Communication.`;
+
+     await axios.post("http://localhost:3000/api/sms/send-sms", {
+      phone: selectedOrder.customerPhone,
+      message,
+    });
+  }catch(error){
+    console.error("SMS sending failed:", error);
+  }
+
+      await updateCustomerBalance(selectedCustomerId);
+    // 🔹 Show success alert
+    Swal.fire({
+      icon: 'success',
+      title: 'Payment Recorded',
+      text: 'The payment has been successfully recorded and the customer has been notified.',
+    });
+
+
+    // Reset modal & states
     setIsPaymentModalOpen(false);
     setPaymentAmount(0);
     setSelectedOrder(null);
-  };
+  } catch (error) {
+    console.error("Payment update failed:", error);
+    // You can add toast/error handling here
+  }
+};
 
 
   const stats = {
@@ -230,7 +274,7 @@ console.log(isLoading)
       
       {/* Action Buttons - Only show once per customer */}
       <div className="flex gap-2 mt-4 justify-end">
-        <button
+        {/* <button
   onClick={() => {
     if (!customerData.orders || customerData.orders.length === 0) return;
 
@@ -257,7 +301,90 @@ console.log(isLoading)
 >
   <Printer size={16} />
   Print Invoice
-</button>
+</button> */}
+      <div className="flex gap-2 mt-4 justify-end">
+  <button
+    onClick={() => {
+      if (!customerData.orders || customerData.orders.length === 0) return;
+
+      // ✅ only keep non-completed orders
+      const pendingOrders = customerData.orders.filter(
+        (order: Order) => order.status !== "completed"
+      );
+
+      if (pendingOrders.length === 0) {
+        console.log("No pending orders to print.");
+        return;
+      }
+
+      const firstOrder = pendingOrders[0];
+
+      // ✅ merge and group items by itemId (or itemName if no IDs)
+      const groupedItems: Record<string, OrderItem> = {};
+
+      pendingOrders.forEach((order: Order) => {
+        order.items.forEach((item: any) => {
+          const key = item.itemId || item.itemName; // fallback if no itemId
+          if (!groupedItems[key]) {
+            groupedItems[key] = {
+              itemId: item.itemId,
+              itemName: item.itemName,
+              quantity: item.quantity,
+              price: item.price ?? item.total / item.quantity,
+              total: item.total,
+            };
+          } else {
+            groupedItems[key].quantity += item.quantity;
+            groupedItems[key].total += item.total;
+          }
+        });
+      });
+
+      const mergedItems: OrderItem[] = Object.values(groupedItems);
+
+      // ✅ recalc totals from merged items
+      const totalAmount = mergedItems.reduce(
+        (sum, item) => sum + item.total,
+        0
+      );
+
+      // Types for merged invoice calculation
+      interface PendingOrder extends Order {
+        items: OrderItem[];
+      }
+
+      const paidAmount: number = (pendingOrders as PendingOrder[]).reduce(
+        (sum: number, order: PendingOrder) => sum + order.paidAmount,
+        0
+      );
+
+      const balanceAmount = totalAmount - paidAmount;
+
+      const combinedOrder: Order = {
+        _id: "combined-" + customerData.customerPhone,
+        customerName: customerData.customerName,
+        customerPhone: customerData.customerPhone,
+        items: mergedItems,
+        totalAmount,
+        paidAmount,
+        balanceAmount,
+        status: balanceAmount > 0 ? "pending" : "completed",
+        createdAt: firstOrder?.createdAt || new Date().toISOString(),
+        orderType: firstOrder?.orderType || "standard",
+        branch: firstOrder?.branch || "",
+      };
+
+      setSelectedOrder(combinedOrder);
+      console.log("Combined Order for Invoice:", combinedOrder);
+    }}
+    className="flex items-center gap-2 px-4 py-2 bg-white text-blue-700 rounded-lg hover:bg-blue-50 transition text-sm font-semibold"
+  >
+    <Printer size={16} />
+    Print Invoice
+  </button>
+</div>
+
+
 
 <button className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm font-semibold"
 onClick={() => toast.error("Delete functionality not implemented yet")}
@@ -290,61 +417,73 @@ onClick={() => toast.error("Delete functionality not implemented yet")}
         order={selectedOrder} 
        onClose={() => setSelectedOrder(null)} 
         />
-        )}
+          )}
 
                   
                   {/* Customer Orders */}
-                  <div className="p-6 space-y-4">
-                    {customerData.orders.map((order: Order) => (
-                      <div key={order._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                order.status === 'completed'
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                {order.status.toUpperCase()}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
-                              </span>
-                            </div>
-                            <p className="text-xs text-gray-500">Order ID: {order._id}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xl font-bold text-gray-800">
-                              LKR {order.totalAmount.toFixed(2)}
-                            </p>
-                            <p className="text-sm text-gray-600">Paid: LKR {order.paidAmount.toFixed(2)}</p>
-                            {order.balanceAmount > 0 && (
-                              <p className="text-sm text-red-600 font-semibold">
-                                Balance: LKR {order.balanceAmount.toFixed(2)}
-                              </p>
-                            )}
-                          </div>
-                        </div>
+<div className="p-6 space-y-4">
+  {customerData.orders
+    .filter((order: Order) => order.status !== "completed") // ✅ skip completed
+    .map((order: Order) => (
+      <div
+        key={order._id}
+        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition"
+      >
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  order.status === "pending"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : "bg-blue-100 text-blue-800"
+                }`}
+              >
+                {order.status.toUpperCase()}
+              </span>
+              <span className="text-xs text-gray-500">
+                {order.createdAt
+                  ? new Date(order.createdAt).toLocaleString()
+                  : "N/A"}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">Order ID: {order._id}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xl font-bold text-gray-800">
+              LKR {order.totalAmount.toFixed(2)}
+            </p>
+            <p className="text-sm text-gray-600">
+              Paid: LKR {order.paidAmount.toFixed(2)}
+            </p>
+            {order.balanceAmount > 0 && (
+              <p className="text-sm text-red-600 font-semibold">
+                Balance: LKR {order.balanceAmount.toFixed(2)}
+              </p>
+            )}
+          </div>
+        </div>
 
-                        {/* Order Items */}
-                        <div className="bg-gray-50 rounded p-3 mb-3">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Items:</h4>
-                          <div className="space-y-1">
-                            {order.items.map((item, idx) => (
-                              <div key={idx} className="flex justify-between text-sm">
-                                <span className="text-gray-700">
-                                  {item.itemName} × {item.quantity}
-                                </span>
-                                <span className="font-semibold text-gray-800">
-                                  LKR {item.total.toFixed(2)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+        {/* Order Items */}
+        <div className="bg-gray-50 rounded p-3 mb-3">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Items:</h4>
+          <div className="space-y-1">
+            {order.items.map((item, idx) => (
+              <div key={idx} className="flex justify-between text-sm">
+                <span className="text-gray-700">
+                  {item.itemName} × {item.quantity}
+                </span>
+                <span className="font-semibold text-gray-800">
+                  LKR {item.total.toFixed(2)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    ))}
+</div>
+
                 </div>
               ))}
 

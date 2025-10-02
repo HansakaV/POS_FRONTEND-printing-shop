@@ -17,6 +17,7 @@ export const addOrder = async (orderData: Omit<Order, "_id">): Promise<Order> =>
 }
 
 export const updateOrder = async (_id: string, orderData: Omit<Order, "_id">) => {
+  console.log("Updating order with ID:", _id, "and data:", orderData)
   const response = await apiClient.put(`/orders/${_id}`, orderData)
   return response.data
 }

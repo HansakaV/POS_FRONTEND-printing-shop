@@ -33,19 +33,28 @@ const Sidebar: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-   useEffect(() => {
+/*    useEffect(() => {
     if (user?.email) {
       sendVerification(user.email);
     }
   }, [user]); 
-
+ */
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: Home, color: 'from-blue-400 to-blue-600' },
     { name: 'Customers', path: '/dashboard/customers', icon: Users, color: 'from-purple-400 to-purple-600' },
     { name: 'Items', path: '/dashboard/items', icon: BookOpen, color: 'from-green-400 to-green-600' },
     { name: 'Orders', path: '/dashboard/orders', icon: ArrowRightLeft, color: 'from-orange-400 to-orange-600' },
-    { name: 'Management', path: '/dashboard/management', icon: Bell, color: 'from-pink-400 to-pink-600' },
+    //{ name: 'Management', path: '/dashboard/management', icon: Bell, color: 'from-pink-400 to-pink-600' },
   ];
+
+  if (user?.role === "admin") {
+  navItems.push({
+    name: 'Management',
+    path: '/dashboard/management',
+    icon: Bell,
+    color: 'from-pink-400 to-pink-600'
+  });
+}
 
   const quickStats = [
     { label: 'Customers', value: stats.totalCustomers, icon: Users, color: 'text-purple-400' },
