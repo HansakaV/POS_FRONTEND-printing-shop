@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, {  useEffect, useState } from "react";
 import type { Order } from "../types/order.ts";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -20,23 +20,34 @@ import {
   ArrowDownRight,
   Activity
 } from 'lucide-react';
+import { getLoggedInUser } from "../services/authService.ts";
 
 const Dashboard: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
+   useEffect(() => {
+      const loggedUser = getLoggedInUser();
+      setUser(loggedUser);
+    }, []);
+
+    console.log(customers)
+    console.log(items)
+  
 
 
   const navigate = useNavigate();
 
-  const fetchAllData = async () => {
+  const fetchAllData = async (branch:string) => {
     setLoading(true);
     try {
       const [customersData, itemsData, ordersData] = await Promise.all([
-        getAllCustomers(),
-        getAllItems(),
-        getAllOrders()
+        getAllCustomers(branch),
+        getAllItems(branch),
+        getAllOrders(branch)
       ]);
       setCustomers(customersData);
       setItems(itemsData);
@@ -53,8 +64,10 @@ const Dashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchAllData();
-  }, []);
+    if (user?.branch) {
+    fetchAllData(user.branch);
+    }
+  }, [user]);
 
 // Filter orders for today
 const todayOrders = orders.filter(order => {

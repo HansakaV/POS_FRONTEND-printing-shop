@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect } from "react";
 import type { Customer } from "../types/customer";
 import type { Item } from "../types/items";
 import type { Order } from "../types/order";

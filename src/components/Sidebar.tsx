@@ -33,11 +33,11 @@ const Sidebar: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  /* useEffect(() => {
+   useEffect(() => {
     if (user?.email) {
       sendVerification(user.email);
     }
-  }, [user]); */
+  }, [user]); 
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: Home, color: 'from-blue-400 to-blue-600' },

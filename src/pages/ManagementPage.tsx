@@ -33,6 +33,8 @@ const ManagementPage: React.FC = () => {
     fetchCustomers(user.branch);
   }
 }, [user]);
+console.log(customers)
+console.log(isLoading)
 
   const fetchOrders = async (branch: string) => {
     try {
@@ -228,17 +230,6 @@ const ManagementPage: React.FC = () => {
       
       {/* Action Buttons - Only show once per customer */}
       <div className="flex gap-2 mt-4 justify-end">
-        {/* <button
-          onClick={() => {
-            
-            setSelectedOrder(customerData.orders[1]);
-            console.log("customerdata",customerData)
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-white text-blue-700 rounded-lg hover:bg-blue-50 transition text-sm font-semibold"
-        >
-          <Printer size={16} />
-          Print Invoice
-        </button> */}
         <button
   onClick={() => {
     if (!customerData.orders || customerData.orders.length === 0) return;
