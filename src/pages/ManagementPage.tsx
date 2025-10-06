@@ -128,10 +128,13 @@ const handlePayment = async () => {
       o._id === selectedOrder._id ? updatedOrder : o
     );
 
+    //checking  values
+    console.log("order values 😒",selectedOrder.balanceAmount,selectedOrder.totalAmount,selectedOrder.paidAmount,selectedOrder.status,newBalance,newPaidAmount,newStatus);
+
     setOrders(updatedOrders);
     try{
     const message = `Dear Sir/Madam,
-     We have Received Your Payment  LKR ${selectedOrder.balanceAmount.toFixed(2) || 0}.Your Due balance is LKR ${(selectedOrder.totalAmount - selectedOrder.balanceAmount).toFixed(2) || 0}.
+     We have Received Your Payment  LKR ${selectedOrder.balanceAmount.toFixed(2) || 0}.Your Due balance is LKR ${newBalance.toFixed(2) || 0}.
      Thanks for shopping with DP Communication.`;
 //api end point
      await axios.post("https://pos-backend-dp.onrender.com/api/sms/send-sms", {
@@ -151,6 +154,8 @@ const handlePayment = async () => {
       text: 'The payment has been successfully recorded and the customer has been notified.',
     });
 
+
+    
 
     // Reset modal & states
     setIsPaymentModalOpen(false);
