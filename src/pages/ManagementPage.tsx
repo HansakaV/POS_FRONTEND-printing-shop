@@ -134,7 +134,7 @@ const handlePayment = async () => {
      We have Received Your Payment  LKR ${selectedOrder.paidAmount.toFixed(2) || 0}.Your Due balance is LKR ${selectedOrder.balanceAmount.toFixed(2) || 0}.
      Thanks for shopping with DP Communication.`;
 
-     await axios.post("http://localhost:3000/api/sms/send-sms", {
+     await axios.post("https://pos-backend-dp.onrender.com/sms/send-sms", {
       phone: selectedOrder.customerPhone,
       message,
     });

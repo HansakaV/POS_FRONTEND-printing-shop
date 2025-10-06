@@ -111,7 +111,7 @@ useEffect(() => {
 You have outstanding payments of LKR ${customer.balance?.toFixed(2) || 0}.
 Thanks for shopping with DP Communication.`;
 
-    const res = await axios.post("http://localhost:3000/api/sms/send-sms", {
+    const res = await axios.post("https://pos-backend-dp.onrender.com/sms/send-sms", {
       phone: customer.phone,
       message,
     });
