@@ -131,7 +131,7 @@ const handlePayment = async () => {
     setOrders(updatedOrders);
     try{
     const message = `Dear Sir/Madam,
-     We have Received Your Payment  LKR ${selectedOrder.paidAmount.toFixed(2) || 0}.Your Due balance is LKR ${selectedOrder.balanceAmount.toFixed(2) || 0}.
+     We have Received Your Payment  LKR ${selectedOrder.balanceAmount.toFixed(2) || 0}.Your Due balance is LKR ${(selectedOrder.totalAmount - selectedOrder.balanceAmount).toFixed(2) || 0}.
      Thanks for shopping with DP Communication.`;
 //api end point
      await axios.post("https://pos-backend-dp.onrender.com/api/sms/send-sms", {
@@ -141,6 +141,7 @@ const handlePayment = async () => {
   }catch(error){
     console.error("SMS sending failed:", error);
   }
+  //updated message for testing
 
       await updateCustomerBalance(selectedCustomerId);
     // 🔹 Show success alert
