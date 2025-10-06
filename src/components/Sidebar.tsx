@@ -6,7 +6,7 @@ import { getLoggedInUser } from '../services/authService.ts';
 import axios from 'axios';
 
 
- 
+ //remove props
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
