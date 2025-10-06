@@ -213,7 +213,7 @@ const OrdersPage: React.FC = () => {
       Paid Amount is LKR ${paidAmount.toFixed(2) || 0}.
        Thanks for shopping with DP Communication.`;
 
-     await axios.post("https://pos-backend-dp.onrender.com/sms/send-sms", {
+     await axios.post("https://pos-backend-dp.onrender.com/api/sms/send-sms", {
       phone: customerPhone,
       message,
     });

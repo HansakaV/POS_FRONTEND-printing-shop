@@ -47,7 +47,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const sendVerification = async(email: string) => {
     const message = `Dear Admin, We have Detected Login from ${email}. This is a verification message.`;
     try {
-      const res = await axios.post("https://pos-backend-dp.onrender.com/sms/send-sms", {
+      const res = await axios.post("https://pos-backend-dp.onrender.com/api/sms/send-sms", {
         phone: "0713856863",
         message,
       });
