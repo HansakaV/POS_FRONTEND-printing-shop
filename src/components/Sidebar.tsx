@@ -14,25 +14,12 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const location = useLocation();
   const { logout } = useAuth();
   const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState({
-    totalCustomers: 1247,
-    totalOrders: 856,
-    activeItems: 342,
-    revenue: 45280
-  });
+  
 
   useEffect(() => {
     const loggedUser = getLoggedInUser();
     setUser(loggedUser);
 
-    const interval = setInterval(() => {
-      setStats(prev => ({
-        ...prev,
-        totalOrders: prev.totalOrders + Math.floor(Math.random() * 2)
-      }));
-    }, 5000);
-
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
