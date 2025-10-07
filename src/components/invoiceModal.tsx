@@ -8,6 +8,7 @@ interface InvoiceModalProps {
   onClose: () => void;
 }
 
+
 const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) => {
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -26,6 +27,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) => {
   };
 
   const totalAmount = order.totalAmount || 0;
+  const paidAmount = order.paidAmount || 0;
+  const balanceDue = totalAmount - paidAmount;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -110,6 +113,10 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) => {
               <div className="flex justify-between">
                 <span className="font-semibold">Total:</span>
                 <span className="font-bold">LKR {totalAmount.toFixed(2)}</span>
+                <span className="font-semibold">Paid:</span>
+                <span className="font-bold">LKR {paidAmount.toFixed(2)}</span>
+                <span className="font-semibold">Balance Due:</span>
+                <span className="font-bold">LKR {balanceDue.toFixed(2)}</span>
               </div>
             </div>
           </div>

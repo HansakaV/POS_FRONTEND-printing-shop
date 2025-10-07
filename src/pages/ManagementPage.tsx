@@ -154,6 +154,8 @@ const handlePayment = async () => {
       text: 'The payment has been successfully recorded and the customer has been notified.',
     });
 
+    console.log("ffffffff")
+
 
     
 
