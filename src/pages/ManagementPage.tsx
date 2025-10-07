@@ -108,8 +108,10 @@ const handlePayment = async () => {
 
   const newBalance = selectedOrder.balanceAmount - paymentAmount;
   const newPaidAmount = selectedOrder.paidAmount + paymentAmount;
-  const newStatus: 'pending' | 'completed' | 'cancelled' =
-    newBalance <= 0 ? 'completed' : 'pending';
+  const newStatus: "pending" | "completed" | "cancelled" =
+    newBalance <= 0 ? "completed" : "pending";
+
+  setIsLoading(true); // ✅ show loading overlay
 
   try {
     // 🔹 Update the selected order on backend
@@ -128,36 +130,47 @@ const handlePayment = async () => {
       o._id === selectedOrder._id ? updatedOrder : o
     );
 
-    //checking  values
-    console.log("order values 😒",selectedOrder.balanceAmount,selectedOrder.totalAmount,selectedOrder.paidAmount,selectedOrder.status,newBalance,newPaidAmount,newStatus);
+    console.log(
+      "order values 😒",
+      selectedOrder.balanceAmount,
+      selectedOrder.totalAmount,
+      selectedOrder.paidAmount,
+      selectedOrder.status,
+      newBalance,
+      newPaidAmount,
+      newStatus
+    );
+
+    // 🕒 Simulate small delay
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     setOrders(updatedOrders);
-    try{
-    const message = `Dear Sir/Madam,
-     We have Received Your Payment  LKR ${selectedOrder.balanceAmount.toFixed(2) || 0}.Your Due balance is LKR ${newBalance.toFixed(2) || 0}.
-     Thanks for shopping with DP Communication.`;
-//api end point
-     await axios.post("https://pos-backend-dp.onrender.com/api/sms/send-sms", {
-      phone: selectedOrder.customerPhone,
-      message,
-    });
-  }catch(error){
-    console.error("SMS sending failed:", error);
-  }
-  //updated message for testing
 
-      await updateCustomerBalance(selectedCustomerId);
+    // 📨 Send SMS
+    try {
+      const message = `Dear Sir/Madam,
+We have received your payment of LKR ${paymentAmount.toFixed(2)}.
+Your remaining balance is LKR ${Math.max(0, newBalance).toFixed(2)}.
+Thanks for shopping with DP Communication.`;
+
+      await axios.post("https://pos-backend-dp.onrender.com/api/sms/send-sms", {
+        phone: selectedOrder.customerPhone,
+        message,
+      });
+    } catch (error) {
+      console.error("SMS sending failed:", error);
+    }
+
+    await updateCustomerBalance(selectedCustomerId);
+
     // 🔹 Show success alert
     Swal.fire({
-      icon: 'success',
-      title: 'Payment Recorded',
-      text: 'The payment has been successfully recorded and the customer has been notified.',
+      icon: "success",
+      title: "Payment Recorded",
+      text: "The payment has been successfully recorded and the customer has been notified.",
     });
 
-    console.log("ffffffff")
-
-
-    
+    console.log("Payment process finished ✅");
 
     // Reset modal & states
     setIsPaymentModalOpen(false);
@@ -165,18 +178,29 @@ const handlePayment = async () => {
     setSelectedOrder(null);
   } catch (error) {
     console.error("Payment update failed:", error);
-    // You can add toast/error handling here
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Something went wrong while processing the payment.",
+    });
+  } finally {
+    setIsLoading(false); // ✅ always hide loading overlay
   }
 };
 
+// 🧮 Stats example
+const stats = {
+  totalOrders: orders.length,
+  pendingOrders: orders.filter((o) => o.status === "pending").length,
+  completedOrders: orders.filter((o) => o.status === "completed").length,
+  totalPendingValue: orders
+    .filter((o) => o.status === "pending")
+    .reduce((sum, o) => sum + o.balanceAmount, 0),
+  totalRevenue: orders
+    .filter((o) => o.status === "completed")
+    .reduce((sum, o) => sum + o.totalAmount, 0),
+};
 
-  const stats = {
-    totalOrders: orders.length,
-    pendingOrders: orders.filter(o => o.status === 'pending').length,
-    completedOrders: orders.filter(o => o.status === 'completed').length,
-    totalPendingValue: orders.filter(o => o.status === 'pending').reduce((sum, o) => sum + o.balanceAmount, 0),
-    totalRevenue: orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + o.totalAmount, 0)
-  };
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -584,6 +608,17 @@ onClick={() => toast.error("Delete functionality not implemented yet")}
                 >
                   Record Payment
                 </button>
+                {isLoading && (
+        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-[9999]">
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 border-4 border-blue-400 rounded-full animate-spin border-t-transparent"></div>
+            <div className="absolute inset-2 border-4 border-blue-600 rounded-full animate-[spin_2s_linear_infinite] border-t-transparent"></div>
+          </div>
+          <p className="mt-4 text-gray-700 font-semibold animate-pulse">
+            Processing payment, please wait...
+          </p>
+        </div>
+      )}
               </div>
             </div>
           </div>
