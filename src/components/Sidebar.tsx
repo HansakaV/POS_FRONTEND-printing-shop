@@ -159,16 +159,14 @@ const Sidebar: React.FC = () => {
   </h3>
   
   <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:bg-white/10 transition-all duration-300 animate-scaleIn">
-    <p className="text-sm text-slate-200 mb-2">
-      <strong>Developer:</strong> Mahesh Hansaka
-    </p>
-    <p className="text-sm text-slate-200 mb-2">
+    
+    <p className="text-sm font-bold text-slate-200 mb-2">
       <strong>Email:</strong> <a href="mailto:hasamahesh01@gmail.com" className="underline hover:text-blue-400">hasamahesh01@gmail.com</a>
     </p>
-    <p className="text-sm text-slate-200 mb-2">
+    <p className="text-sm font-bold text-slate-200 mb-2">
       <strong>Phone:</strong> <a href="tel:+94710356244" className="underline hover:text-blue-400">+94 71 035 6244</a>
     </p>
-    <p className="text-sm text-slate-200">
+    <p className="text-sm font-bold text-slate-200">
       <strong>Website:</strong> <a href="https://neon-mahesh-portfolio.vercel.app" target="_blank" className="underline hover:text-blue-400">Mahesh Hansaka</a>
     </p>
   </div>
@@ -252,3 +250,4 @@ const Sidebar: React.FC = () => {
 
 export default Sidebar;
 
+//remove developer information
