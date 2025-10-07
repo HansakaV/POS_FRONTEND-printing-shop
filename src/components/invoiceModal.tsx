@@ -80,7 +80,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) => {
             <div className="text-sm space-y-1">
               <p><strong>Date:</strong> {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A"}</p>
               <p><strong>Payment Terms:</strong> Cash / Cheque</p>
-              <p><strong>Balance Due:</strong> LKR {order.totalAmount?.toFixed(2)}</p>
+              <p><strong>Balance Due:</strong> LKR {order.balanceAmount?.toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -109,12 +109,16 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) => {
 
           {/* Totals */}
           <div className="flex justify-end mb-8">
-            <div className="w-64 space-y-2">
+            <div className="grid grid-cols-2 gap-2 w-64">
               <div className="flex justify-between">
                 <span className="font-semibold">Total:</span>
                 <span className="font-bold">LKR {totalAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="font-semibold">Paid:</span>
                 <span className="font-bold">LKR {paidAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="font-semibold">Balance Due:</span>
                 <span className="font-bold">LKR {balanceDue.toFixed(2)}</span>
               </div>
@@ -145,3 +149,5 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) => {
 };
 
 export default InvoiceModal;
+
+//invoice modal updated
