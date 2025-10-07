@@ -145,3 +145,6 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) => {
 };
 
 export default InvoiceModal;
+
+
+//invoice modal design updaated
